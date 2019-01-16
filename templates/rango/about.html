@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{%load staticfiles %}
 
 <html>
     <head>
@@ -7,12 +8,14 @@
     <body>
         <h1>Rango about page</h1>
         <div>
-            This is the about page <br />
+            Rango says here is the about page <br />
         </div>
         <div>
             <a href="/rango/about">About</a><br />
-            <img src="{{MEDIA_URL}}cat.jpg" width=300 alt="Greet the cat" />
+            <img src="{{MEDIA_URL}}cat.jpg" width=300 alt="Greet the cat" /><br>
+            <img src="{% static "images/rango.jpg" %}" alt="Picture of Rango" />
         </div>
+        
         <footer>
             {{footerSection}}
         </footer>
