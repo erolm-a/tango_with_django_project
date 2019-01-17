@@ -4,9 +4,9 @@ from rango.models import Page, Category
 class CategoryForm(forms.ModelForm):
     name = forms.CharField(Category._meta.get_field('name').max_length,
                            help_text="Please enter the category name.")
-    # views = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
-    # likes = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
-    # slug = forms.CharField(widget=forms.HiddenInput(), required=False)
+    views = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
+    likes = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
+    slug = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     class Meta:
         # Provide an association between the ModelForm and a model
@@ -16,7 +16,7 @@ class CategoryForm(forms.ModelForm):
 class PageForm(forms.ModelForm):
     title = forms.CharField(Page._meta.get_field('title').max_length,
                             help_text="Please enter the title of the page.")
-    url = forms.URLField(max_length=200,
+    url = forms.URLField(max_length=Page._meta.get_field('url').max_length,
                          help_text="Please enter the URL of the page.")
     views = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
 
@@ -27,12 +27,12 @@ class PageForm(forms.ModelForm):
         exclude = ('category',)
 
     def clean(self):
-        cleaner_data = self.cleaned_data
+        cleaned_data = self.cleaned_data
         url = cleaned_data.get('url')
 
         # If url is not empty and doesn't start with 'http://',
         # then prepend 'http://'
-        if url and not url.startswith('http://'):
+        if url and not (url.startswith('http://') or url.startswith('https://')):
             url = 'http://' + url
             cleaned_data['url'] = url
 
