@@ -1,31 +1,31 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Rango</title>
-    </head>
-    <body>
-        <h1>Add a page</h1>
-        <div>
-            {% if category %}
-            <h1>{{ category.name }}</h1>
-            <form id="page_form" method="post" action="/rango/add_page/{{ category.slug }}/">
-                {% csrf_token %}
-                {% for hidden in form.hidden_fields %}
-                    {{ hidden }}
-                {% endfor %}
-                {% for field in form.visible_fields %}
-                    {{ field.errors }}
-                    <br>
-                    {{ field.help_text }}
-                    <br>
-                    {{ field }}
-                {% endfor %}
-                <input type="submit" name="submit" value="Add page" /><br>
-                <a href="/rango/category/{{category.slug}}/">Go back</a>
-            </form>
-            {% else %}
-                Sorry, to add a page you must choose a category. Maybe your link is broken? On that case, go back to the <a href="/">index</a> and select a category.
-            {% endif %}
-        </div>
-    </body>
-</html>
+{% extends 'rango/base.html' %}
+{% load staticfiles %}
+
+{% block title_block %}
+    Add a page
+{% endblock %}
+
+{% block body_block %}
+    <h1>Add a page</h1>
+    <div>
+        {% if category %}
+        <h3>{{ category.name }}</h3>
+        <form id="page_form" method="post" action="{% url 'add_page' category.slug %}/">
+            {% csrf_token %}
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% for field in form.visible_fields %}
+                {{ field.errors }}
+                <br>
+                {{ field.help_text }}
+                <br>
+                {{ field }}
+            {% endfor %}
+            <input type="submit" name="submit" value="Add page" /><br>
+            <a href="/rango/category/{{category.slug}}/">Go back</a>
+        </form>
+        {% else %}
+            Sorry, to add a page you must choose a category. Maybe your link is broken? On that case, go back to the <a href="/">index</a> and select a category.
+        {% endif %}
+{% endblock %}
