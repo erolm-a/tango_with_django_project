@@ -79,9 +79,7 @@ def add_category(request):
 @login_required
 def add_page(request, category_name_slug):
     try:
-        print(category_name_slug)
         category = Category.objects.get(slug=category_name_slug)
-        print(category)
     except Category.DoesNotExist:
         category = None
 
