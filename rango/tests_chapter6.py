@@ -1,8 +1,9 @@
 # Chapter 3
 from django.test import TestCase
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from selenium import webdriver
 from django.core.urlresolvers import reverse
-import os
+import os, socket
 
 #Chapter 4
 from django.contrib.staticfiles import finders
@@ -16,6 +17,89 @@ import rango.test_utils as test_utils
 from rango.decorators import chapter6
 
 # ===== Chapter 6
+class Chapter6LiveServerTests(StaticLiveServerTestCase):
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_superuser(username='admin', password='admin', email='admin@me.com')
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('headless')
+        self.browser = webdriver.Chrome(chrome_options = chrome_options)
+        self.browser.implicitly_wait(3)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.host = socket.gethostbyname(socket.gethostname())
+        super(Chapter6LiveServerTests, cls).setUpClass()
+
+    def tearDown(self):
+        self.browser.refresh()
+        self.browser.quit()
+
+    # def test_category_on_admin_page_contains_slug_field(self):
+    #     # Populate database
+    #     populate_rango.populate()
+    #
+    #     # Access admin page
+    #     url = self.live_server_url
+    #     url = url.replace('localhost', '127.0.0.1')
+    #     self.browser.get(url + reverse('admin:index'))
+    #
+    #     # Log in the admin page
+    #     test_utils.login(self)
+    #
+    #     # Check if is there link to categories
+    #     categories_link = self.browser.find_elements_by_partial_link_text('Categor')
+    #     categories_link[0].click()
+    #
+    #     # Check for the categories saved by the population script
+    #     # category_link = self.browser.find_elements_by_partial_link_text('Other')
+    #     # print(category_link)
+    #     # category_link[0].click()
+    #
+    #     body = self.browser.find_element_by_tag_name('body')
+    #
+    #     # Check the slug field
+    #     self.assertIn("Slug:", body.text)
+    #     slug_input = self.browser.find_element_by_name("slug")
+        # self.assertEquals(slug_input.get_attribute("value"), "other-frameworks")
+
+    def test_category_redirect_to_desired_page(self):
+        # Populate database
+        populate_rango.populate()
+
+        # Access index page
+        url = self.live_server_url
+        url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('index'))
+
+        #Access Python category page
+        category_link = self.browser.find_elements_by_link_text('Python')
+        category_link[0].click()
+
+        # Check it is in the correct page
+        self.assertEquals(self.browser.current_url, url + reverse('show_category', args=['python']))
+
+        # Access index page
+        self.browser.get(url + reverse('index'))
+
+        #Access Django category page
+        category_link = self.browser.find_elements_by_link_text('Django')
+        category_link[0].click()
+
+        # Check it is in the correct page
+        self.assertEquals(self.browser.current_url, url + reverse('show_category', args=['django']))
+
+        # Access index page
+        self.browser.get(url + reverse('index'))
+
+        #Access Other Frameworks category page
+        category_link = self.browser.find_elements_by_link_text('Other Frameworks')
+        category_link[0].click()
+
+        # Check it is in the correct page
+        self.assertEquals(self.browser.current_url, url + reverse('show_category', args=['other-frameworks']))
+
 class Chapter6ModelTests(TestCase):
     def test_category_contains_slug_field(self):
         #Create a new category

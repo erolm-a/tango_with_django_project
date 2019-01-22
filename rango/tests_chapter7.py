@@ -1,8 +1,9 @@
 # Chapter 3
 from django.test import TestCase
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from selenium import webdriver
 from django.core.urlresolvers import reverse
-import os
+import os, socket
 
 #Chapter 4
 from django.contrib.staticfiles import finders
@@ -20,6 +21,177 @@ from rango.decorators import chapter7
 from rango.forms import CategoryForm, PageForm
 
 # ===== Chapter 7
+class Chapter7LiveServerTestCase(StaticLiveServerTestCase):
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_superuser(username='admin', password='admin', email='admin@me.com')
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('headless')
+        self.browser = webdriver.Chrome(chrome_options = chrome_options)
+        self.browser.implicitly_wait(3)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.host = socket.gethostbyname(socket.gethostname())
+        super(Chapter7LiveServerTestCase, cls).setUpClass()
+
+    def tearDown(self):
+        self.browser.refresh()
+        self.browser.quit()
+
+    @chapter7
+    def test_form_is_saving_new_category(self):
+        # Access index page
+        url = self.live_server_url
+        url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('index'))
+
+        # Check if is there link to add categories
+        categories_link = self.browser.find_elements_by_partial_link_text('Add a New Category')
+        if len(categories_link) == 0:
+            categories_link = self.browser.find_elements_by_partial_link_text('Add New Category')
+
+        categories_link[0].click()
+
+        # Types new category name
+        username_field = self.browser.find_element_by_name('name')
+        username_field.send_keys('New Category')
+
+        # Click on Create Category
+        self.browser.find_element_by_css_selector(
+            "input[type='submit']"
+        ).click()
+
+        body = self.browser.find_element_by_tag_name('body')
+
+        # Check if New Category appears in the index page
+        self.assertIn('New Category'.lower(), body.text.lower())
+
+    @chapter7
+    def test_form_error_when_category_field_empty(self):
+        # Access index page
+        url = self.live_server_url
+        url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('index'))
+
+        # Check if is there link to add categories
+        categories_link = self.browser.find_elements_by_partial_link_text('Add a New Category')
+        if len(categories_link) == 0:
+            categories_link = self.browser.find_elements_by_partial_link_text('Add New Category')
+
+        categories_link[0].click()
+
+        url_path = self.browser.current_url
+        response = self.client.get(url_path)
+
+        self.assertIn('required'.lower(), response.content.lower())
+
+    @chapter7
+    def test_add_category_that_already_exists(self):
+        # Create a category in database
+        new_category = Category(name="New Category")
+        new_category.save()
+
+        # Access index page
+        url = self.live_server_url
+        url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('index'))
+
+        # Check if is there link to add categories
+        categories_link = self.browser.find_elements_by_partial_link_text('Add a New Category')
+        if len(categories_link) == 0:
+            categories_link = self.browser.find_elements_by_partial_link_text('Add New Category')
+
+        categories_link[0].click()
+
+        # Types new category name
+        username_field = self.browser.find_element_by_name('name')
+        username_field.send_keys('New Category')
+
+        # Click on Create Category
+        self.browser.find_element_by_css_selector(
+            "input[type='submit']"
+        ).click()
+
+        body = self.browser.find_element_by_tag_name('body')
+
+        # Check if there is an error message
+        self.assertIn('Category with this Name already exists.'.lower(), body.text.lower())
+
+    @chapter7
+    def test_form_is_saving_new_page(self):
+        #Create categories and pages
+        categories = test_utils.create_categories()
+        i = 0
+
+        for category in categories:
+            i = i + 1
+            # Access link to add page for the category
+            url = self.live_server_url
+            url = url.replace('localhost', '127.0.0.1')
+            self.browser.get(url + reverse('add_page', args=[category.slug]))
+
+            # Types new page name
+            username_field = self.browser.find_element_by_name('title')
+            username_field.send_keys('New Page ' + str(i))
+
+            # Types url for the page
+            username_field = self.browser.find_element_by_name('url')
+            username_field.send_keys('http://www.newpage1.com')
+
+            # Click on Create Page
+            self.browser.find_element_by_css_selector(
+                "input[type='submit']"
+            ).click()
+
+            body = self.browser.find_element_by_tag_name('body')
+
+            # Check if New Page appears in the category page
+            self.assertIn('New Page'.lower(), body.text.lower())
+
+    def test_cleaned_data_from_add_page(self):
+        #Create categories and pages
+        categories = test_utils.create_categories()
+        i = 0
+
+        # If already in chapter 9 the user might have already implemented
+        # the login system, so the add_page link may incur in a authentication
+        # page.
+        # Anyway, this login system actually uses the /admin page, which is
+        # available since chapter 5
+        try:
+            test_utils.login(self)
+        except:
+            #
+            pass
+
+        for category in categories:
+            i = i + 1
+            # Access link to add page for the category
+            url = self.live_server_url
+            url = url.replace('localhost', '127.0.0.1')
+            self.browser.get(url + '/rango/category/' + category.slug + '/add_page/')
+
+            # Types new page name
+            username_field = self.browser.find_element_by_name('title')
+            username_field.send_keys('New Page ' + str(i))
+
+            # Types url for the page
+            username_field = self.browser.find_element_by_name('url')
+            username_field.send_keys('http://www.newpage' + str(1) + '.com')
+
+            # Click on Create Page
+            self.browser.find_element_by_css_selector(
+                "input[type='submit']"
+            ).click()
+
+            body = self.browser.find_element_by_tag_name('body')
+
+            # Check if New Page appears in the category page
+            self.assertIn('New Page'.lower(), body.text.lower())
+
+
 class Chapter7ViewTests(TestCase):
     @chapter7
     def test_index_contains_link_to_add_category(self):

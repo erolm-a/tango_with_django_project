@@ -1,8 +1,9 @@
 # Chapter 3
 from django.test import TestCase
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from selenium import webdriver
 from django.core.urlresolvers import reverse
-import os
+import os, socket
 
 #Chapter 4
 from django.contrib.staticfiles import finders
@@ -10,9 +11,146 @@ from django.contrib.staticfiles import finders
 #Chapter 5
 from rango.models import Page, Category
 import populate_rango
-import rango.test_utils
+import rango.test_utils as test_utils
 
 # ===== CHAPTER 5
+class Chapter5LiveServerTests(StaticLiveServerTestCase):
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        User.objects.create_superuser(username='admin', password='admin', email='admin@me.com')
+        #chrome_options = webdriver.ChromeOptions()
+        #chrome_options.add_argument("test-type")
+        #self.browser = webdriver.Chrome(chrome_options=chrome_options)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('headless')
+        self.browser = webdriver.Chrome(chrome_options = chrome_options)
+        self.browser.implicitly_wait(3)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.host = socket.gethostbyname(socket.gethostname())
+        super(Chapter5LiveServerTests, cls).setUpClass()
+
+    def tearDown(self):
+        self.browser.refresh()
+        self.browser.quit()
+
+    def test_population_script(self):
+        #Populate database
+        populate_rango.populate()
+        url = self.live_server_url
+        #url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('admin:index'))
+
+        # Log in the admin page
+        test_utils.login(self)
+
+        # # Check if is there link to categories
+        # category_link = self.browser.find_elements_by_partial_link_text('Categor')
+        # print(category_link[0].text)
+        # category_link[0].click()
+
+        # Check for the categories saved by the population script
+        # self.browser.find_elements_by_partial_link_text('Other Frameworks')
+        # self.browser.find_elements_by_partial_link_text('Django')
+        # self.browser.find_elements_by_partial_link_text('Python')
+
+        # Check the pages saved by the population script
+        self.browser.get(url + reverse('admin:rango_page_changelist'))
+        self.browser.find_elements_by_partial_link_text('Flask')
+        self.browser.find_elements_by_partial_link_text('Bottle')
+        self.browser.find_elements_by_partial_link_text('How to Tango with Django')
+        self.browser.find_elements_by_partial_link_text('Official Django Tutorial')
+        self.browser.find_elements_by_partial_link_text('Django Rocks')
+        self.browser.find_elements_by_partial_link_text('Learn Python in 10 Minutes')
+        self.browser.find_elements_by_partial_link_text('How to Think like a Computer Scientist')
+        self.browser.find_elements_by_partial_link_text('Official Python Tutorial')
+
+    def test_admin_page_contains_title_url_and_category(self):
+        #Populate database
+        populate_rango.populate()
+
+        url = self.live_server_url
+        url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('admin:index'))
+
+        # Log in the admin page
+        test_utils.login(self)
+
+        # Click in Pages
+        pages_link = self.browser.find_element_by_link_text('Pages')
+        pages_link.click()
+
+        body = self.browser.find_element_by_tag_name('body')
+
+        # Get all pages
+        pages = Page.objects.all()
+
+        # Check all pages title, category and url are displayed
+        for page in pages:
+            self.assertIn(page.title, body.text)
+            # self.assertIn(page.category.name, body.text)
+            self.assertIn(page.url, body.text)
+
+        # Check for the Github account and PythonAnywhere account
+        body = self.browser.find_element_by_tag_name('body')
+        self.assertIn('http://www.djangorocks.com/', body.text)
+        self.assertIn('http://flask.pocoo.org', body.text)
+
+    def test_can_create_new_category_via_admin_site(self):
+        #Access admin page
+        url = self.live_server_url
+        url = url.replace('localhost', '127.0.0.1')
+        self.browser.get(url + reverse('admin:index'))
+
+        # Check if it display admin message
+        body = self.browser.find_element_by_tag_name('body')
+        self.assertIn('Django administration', body.text)
+
+        # Log in the admin page
+        test_utils.login(self)
+
+        # the Site Administration page
+        body = self.browser.find_element_by_tag_name('body')
+        self.assertIn('Site administration', body.text)
+
+        # Check if is there link to categories
+        category_link = self.browser.find_elements_by_partial_link_text('Categor')
+        self.assertEquals(len(category_link), 1)
+
+        # Click in the link
+        category_link[0].click()
+
+        # Empty, so check for the empty message
+        body = self.browser.find_element_by_tag_name('body')
+        self.assertIn('0 categor', body.text.lower())
+
+        # Add a category by clicking on 'Add category
+        # new_poll_link = self.browser.find_element_by_link_text('Add category')
+        new_poll_link = self.browser.find_element_by_class_name('addlink')
+        new_poll_link.click()
+
+        # Check for input field
+        body = self.browser.find_element_by_tag_name('body')
+        self.assertIn('Name:'.lower(), body.text.lower())
+
+        # Input category name
+        category_field = self.browser.find_element_by_name('name')
+        category_field.send_keys("Test Driven Development")
+
+        # Leave likes and views as 0
+
+         # Gertrude clicks the save button
+        save_button = self.browser.find_element_by_css_selector("input[value='Save']")
+        save_button.click()
+
+        # As redirected there is a link for the category
+        # category_link1 = self.browser.find_elements_by_link_text("Test Driven Development")
+
+        # self.assertEquals(len(category_link1), 0)
+
+
 class Chapter5ModelTests(TestCase):
 
     def test_create_a_new_category(self):
