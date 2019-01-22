@@ -1,7 +1,10 @@
-from django.shortcuts import render
+from django.contrib.auth import authenticate, login
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render
 from rango.models import Category, Page
-from rango.forms import CategoryForm, PageForm
+from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 
 def index(request):
     # Query the database for a list of ALL categories currently stored.
@@ -94,3 +97,64 @@ def add_page(request, category_name_slug):
 
     context_dict = {'form':form, 'category': category}
     return render(request, 'rango/add_page.html', context_dict)
+
+def register(request):
+    registered = False
+
+    # If it's a HTTP POST, we're interested in processing form data
+    if request.method == 'POST':
+        user_form = UserForm(data=request.POST)
+        profile_form = UserProfileForm(data=request.POST)
+
+        # If the two forms are valid...
+        if user_form.is_valid() and profile_form.is_valid():
+            # Save the user's form data to the database
+            user = user_form.save()
+            user.set_password(user.password)
+            user.save()
+
+            # Similarly for the profile
+            profile = profile_form.save(commit=False)
+            profile.user = user
+
+            if 'picture' in request.FILES:
+                profile.picture = request.FILES['picture']
+
+            # Now we save the UserProfile model instance
+            profile.save()
+
+            registered = True
+
+        else:
+            print(user_form.errors, profile_form.errors)
+    else:
+        user_form = UserForm()
+        profile_form = UserProfileForm()
+
+    return render(request, 'rango/register.html', {'user_form': user_form,
+                                                   'profile_form': profile_form,
+                                                   'registered': registered})
+
+def user_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(username=username, password=password)
+
+        # authentication successfully performed
+        if user:
+            # is the account active? It could have been disabled
+            if user.is_active:
+                login(request, user)
+                return HttpResponseRedirect(reverse('index'))
+            else:
+                return HttpResponse("Your Rango account is disabled")
+        else:
+            # Bad login details were provided
+            print(f"Invalid login details: {username, password}")
+            return HttpResponse("Invalid login details supplied.")
+
+    else:
+        return render(request, 'rango/login.html', {})
+
