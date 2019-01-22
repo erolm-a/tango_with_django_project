@@ -90,3 +90,6 @@ db.sqlite3
 # see https://github.com/dastergon/tango_with_django/commit/ff51a55bb006c4ef059c2027bb1606a1c8c7fed1
 # and https://stackoverflow.com/questions/28035119/should-i-be-adding-the-django-migration-files-in-the-gitignore-file
 rango/migrations/
+
+# template generation preferably not pushed
+generate_template.sh
