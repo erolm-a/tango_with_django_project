@@ -141,3 +141,6 @@ STATICFILES_DIRS = [STATIC_DIR, ]
 # Dynamic media files
 MEDIA_ROOT = MEDIA_DIR
 MEDIA_URL = '/media/'
+
+# Rango specific configuration
+LOGIN_URL = '/rango/login'
