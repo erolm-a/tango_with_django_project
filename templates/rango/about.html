@@ -7,6 +7,9 @@
 {% block body_block %}
     <h1>Rango says here is the about page</h1>
     <div>
+        Number of visits: {{visits}}
+    </div>
+    <div>
         <img src="{{MEDIA_URL}}cat.jpg" width=300 alt="Greet the cat" /><br>
         <img src="{% static "images/rango.jpg" %}" width=300 alt="Picture of Rango" />
     </div>  

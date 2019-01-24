@@ -144,3 +144,4 @@ MEDIA_URL = '/media/'
 
 # Rango specific configuration
 LOGIN_URL = '/rango/login'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
